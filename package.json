@@ -1,0 +1,11 @@
+{
+  "name": "kart-f1-tracker-api",
+  "version": "0.1.0",
+  "description": "API para histórico de kart de pilotos de Fórmula 1",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "private": true
+}
