@@ -7,6 +7,48 @@ const app = Fastify({
   logger: true,
 })
 
+const swaggerTheme = `
+  body {
+    background: #f4f8ff;
+  }
+
+  .swagger-ui .topbar {
+    background: #081f3d;
+    border-bottom: 3px solid #1976d2;
+  }
+
+  .swagger-ui .topbar-wrapper img {
+    display: none;
+  }
+
+  .swagger-ui .topbar-wrapper .link::after {
+    content: "KART F1 TRACKER API";
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .swagger-ui .info .title {
+    color: #081f3d;
+  }
+
+  .swagger-ui .scheme-container {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(8, 31, 61, 0.12);
+  }
+
+  .swagger-ui .opblock.opblock-get {
+    background: rgba(25, 118, 210, 0.08);
+    border-color: #1976d2;
+  }
+
+  .swagger-ui .btn.authorize {
+    color: #1976d2;
+    border-color: #1976d2;
+  }
+`
+
 async function start() {
   await app.register(swagger, {
     openapi: {
@@ -30,6 +72,15 @@ async function start() {
     uiConfig: {
       docExpansion: 'list',
       deepLinking: true,
+    },
+    theme: {
+      title: 'Kart F1 Tracker API Docs',
+      css: [
+        {
+          filename: 'kart-theme.css',
+          content: swaggerTheme,
+        },
+      ],
     },
   })
 
