@@ -13,6 +13,8 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.6",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5"
   },
