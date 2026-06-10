@@ -2,6 +2,7 @@ import 'dotenv/config'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import Fastify from 'fastify'
+import { initDb } from './database/db.js'
 
 const app = Fastify({
   logger: true,
@@ -50,6 +51,8 @@ const swaggerTheme = `
 `
 
 async function start() {
+  await initDb()
+
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.3',
