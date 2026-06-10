@@ -3,6 +3,9 @@ import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import Fastify from 'fastify'
 import { initDb } from './database/db.js'
+import { driverRoutes } from './routes/driverRoutes.js'
+import { healthRoutes } from './routes/healthRoutes.js'
+import { kartingRecordRoutes } from './routes/kartingRecordRoutes.js'
 
 const app = Fastify({
   logger: true,
@@ -66,6 +69,14 @@ async function start() {
           name: 'Health',
           description: 'Estado da aplicação',
         },
+        {
+          name: 'Drivers',
+          description: 'Pilotos de Fórmula 1',
+        },
+        {
+          name: 'Karting Records',
+          description: 'Histórico dos pilotos no kart',
+        },
       ],
     },
   })
@@ -87,31 +98,9 @@ async function start() {
     },
   })
 
-  app.get(
-    '/health',
-    {
-      schema: {
-        tags: ['Health'],
-        summary: 'Verifica o estado da API',
-        response: {
-          200: {
-            type: 'object',
-            required: ['status', 'service'],
-            properties: {
-              status: { type: 'string' },
-              service: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async () => {
-      return {
-        status: 'ok',
-        service: 'kart-f1-tracker-api',
-      }
-    },
-  )
+  await app.register(healthRoutes)
+  await app.register(driverRoutes)
+  await app.register(kartingRecordRoutes)
 
   const port = Number(process.env.PORT ?? 3333)
   const host = process.env.HOST ?? '0.0.0.0'
