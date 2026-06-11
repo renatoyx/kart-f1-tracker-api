@@ -2,6 +2,7 @@ import { database } from '../database/db.js'
 import type {
   CreateKartingRecordInput,
   KartingRecord,
+  SharedChampionship,
 } from '../models/KartingRecord.js'
 
 interface KartingRecordRow {
@@ -65,6 +66,44 @@ export class KartingRecordDAO {
     )
 
     return rows.map(mapKartingRecord)
+  }
+
+  async findSharedChampionships(
+    driver1Id: number,
+    driver2Id: number,
+  ): Promise<SharedChampionship[]> {
+    const [driver1Records, driver2Records] = await Promise.all([
+      this.findByDriverId(driver1Id),
+      this.findByDriverId(driver2Id),
+    ])
+
+    return driver1Records.flatMap((driver1Record) => {
+      return driver2Records
+        .filter((driver2Record) => {
+          return (
+            driver1Record.year === driver2Record.year &&
+            driver1Record.championship === driver2Record.championship &&
+            driver1Record.category === driver2Record.category
+          )
+        })
+        .map((driver2Record) => ({
+          year: driver1Record.year,
+          championship: driver1Record.championship,
+          category: driver1Record.category,
+          driver1: {
+            driverId: driver1Id,
+            chassis: driver1Record.chassis,
+            engine: driver1Record.engine,
+            result: driver1Record.result,
+          },
+          driver2: {
+            driverId: driver2Id,
+            chassis: driver2Record.chassis,
+            engine: driver2Record.engine,
+            result: driver2Record.result,
+          },
+        }))
+    })
   }
 
   async create(input: CreateKartingRecordInput): Promise<KartingRecord> {

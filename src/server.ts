@@ -3,6 +3,7 @@ import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import Fastify from 'fastify'
 import { initDb } from './database/db.js'
+import { analyticsRoutes } from './routes/analyticsRoutes.js'
 import { driverRoutes } from './routes/driverRoutes.js'
 import { healthRoutes } from './routes/healthRoutes.js'
 import { kartingRecordRoutes } from './routes/kartingRecordRoutes.js'
@@ -101,6 +102,7 @@ async function start() {
   await app.register(healthRoutes)
   await app.register(driverRoutes)
   await app.register(kartingRecordRoutes)
+  await app.register(analyticsRoutes)
 
   const port = Number(process.env.PORT ?? 3333)
   const host = process.env.HOST ?? '0.0.0.0'
