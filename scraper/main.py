@@ -1,3 +1,4 @@
+import argparse
 import sqlite3
 from pathlib import Path
 
@@ -160,26 +161,56 @@ def save_records(
     return inserted_records
 
 
-def main() -> None:
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Importa o histórico de kart de um piloto da Wikipedia."
+    )
+    parser.add_argument(
+        "name",
+        nargs="?",
+        default="Max Verstappen",
+        help="Nome usado para localizar ou cadastrar o piloto.",
+    )
+    parser.add_argument(
+        "url",
+        nargs="?",
+        default=MAX_VERSTAPPEN_URL,
+        help="URL da página do piloto na Wikipedia.",
+    )
+    parser.add_argument(
+        "--nationality",
+        default="Unknown",
+        help="Nacionalidade usada caso o piloto ainda não esteja cadastrado.",
+    )
+
+    return parser.parse_args()
+
+
+def scrape_driver(name: str, url: str, nationality: str) -> None:
     options = webdriver.ChromeOptions()
     options.add_argument("--headless=new")
 
     driver = webdriver.Chrome(options=options)
 
     try:
-        driver.get(MAX_VERSTAPPEN_URL)
+        driver.get(url)
         records = extract_karting_records(driver)
         inserted_records = save_records(
-            driver_name="Max Verstappen",
-            nationality="Dutch",
+            driver_name=name,
+            nationality=nationality,
             records=records,
         )
         print(
             f"{len(records)} registros encontrados; "
-            f"{inserted_records} inseridos para Max Verstappen"
+            f"{inserted_records} inseridos para {name}"
         )
     finally:
         driver.quit()
+
+
+def main() -> None:
+    arguments = parse_arguments()
+    scrape_driver(arguments.name, arguments.url, arguments.nationality)
 
 
 if __name__ == "__main__":
