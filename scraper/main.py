@@ -1,3 +1,6 @@
+import sqlite3
+from pathlib import Path
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as expected
@@ -7,6 +10,8 @@ from cleaner import clean_text, extract_year
 
 
 MAX_VERSTAPPEN_URL = "https://en.wikipedia.org/wiki/Max_Verstappen"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATABASE_PATH = PROJECT_ROOT / "data" / "kart-f1-tracker.db"
 
 
 def extract_karting_records(driver: webdriver.Chrome) -> list[dict[str, str | int]]:
@@ -50,6 +55,111 @@ def extract_karting_records(driver: webdriver.Chrome) -> list[dict[str, str | in
     return records
 
 
+def get_driver_id(
+    connection: sqlite3.Connection,
+    name: str,
+    nationality: str,
+) -> int:
+    row = connection.execute(
+        "SELECT id FROM drivers WHERE name = ? COLLATE NOCASE",
+        (name,),
+    ).fetchone()
+
+    if row:
+        return int(row[0])
+
+    cursor = connection.execute(
+        "INSERT INTO drivers (name, nationality) VALUES (?, ?)",
+        (name, nationality),
+    )
+
+    if cursor.lastrowid is None:
+        raise RuntimeError(f"Não foi possível cadastrar o piloto {name}")
+
+    return cursor.lastrowid
+
+
+def split_championship(value: str) -> tuple[str, str | None]:
+    parts = [part.strip() for part in value.rsplit("–", maxsplit=1)]
+
+    if len(parts) == 2:
+        return parts[0], parts[1]
+
+    return value, None
+
+
+def save_records(
+    driver_name: str,
+    nationality: str,
+    records: list[dict[str, str | int]],
+) -> int:
+    if not DATABASE_PATH.exists():
+        raise FileNotFoundError(
+            "Banco não encontrado. Inicie o backend uma vez antes do scraper: "
+            f"{DATABASE_PATH}"
+        )
+
+    inserted_records = 0
+
+    with sqlite3.connect(DATABASE_PATH) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        driver_id = get_driver_id(connection, driver_name, nationality)
+
+        for record in records:
+            championship, category = split_championship(
+                str(record["championship"])
+            )
+            team = str(record["team"]) or None
+            result = str(record["result"]) or None
+
+            existing_record = connection.execute(
+                """
+                SELECT id
+                FROM karting_records
+                WHERE driver_id = ?
+                  AND year = ?
+                  AND championship = ?
+                  AND COALESCE(team, '') = COALESCE(?, '')
+                  AND COALESCE(result, '') = COALESCE(?, '')
+                """,
+                (
+                    driver_id,
+                    int(record["year"]),
+                    championship,
+                    team,
+                    result,
+                ),
+            ).fetchone()
+
+            if existing_record:
+                continue
+
+            connection.execute(
+                """
+                INSERT INTO karting_records (
+                  driver_id,
+                  year,
+                  championship,
+                  category,
+                  team,
+                  result
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    driver_id,
+                    int(record["year"]),
+                    championship,
+                    category,
+                    team,
+                    result,
+                ),
+            )
+            inserted_records += 1
+
+    return inserted_records
+
+
 def main() -> None:
     options = webdriver.ChromeOptions()
     options.add_argument("--headless=new")
@@ -59,10 +169,15 @@ def main() -> None:
     try:
         driver.get(MAX_VERSTAPPEN_URL)
         records = extract_karting_records(driver)
-        print(f"{len(records)} registros encontrados em {driver.title}")
-
-        for record in records:
-            print(record)
+        inserted_records = save_records(
+            driver_name="Max Verstappen",
+            nationality="Dutch",
+            records=records,
+        )
+        print(
+            f"{len(records)} registros encontrados; "
+            f"{inserted_records} inseridos para Max Verstappen"
+        )
     finally:
         driver.quit()
 
