@@ -78,6 +78,10 @@ async function start() {
           name: 'Karting Records',
           description: 'Histórico dos pilotos no kart',
         },
+        {
+          name: 'Analytics',
+          description: 'Análises e cruzamentos dos históricos de kart',
+        },
       ],
     },
   })
