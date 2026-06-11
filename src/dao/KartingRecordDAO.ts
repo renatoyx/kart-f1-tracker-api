@@ -18,6 +18,20 @@ interface KartingRecordRow {
   created_at: string
 }
 
+interface SharedChampionshipRow {
+  year: number
+  championship: string
+  category: string | null
+  driver1_id: number
+  driver1_chassis: string | null
+  driver1_engine: string | null
+  driver1_result: string | null
+  driver2_id: number
+  driver2_chassis: string | null
+  driver2_engine: string | null
+  driver2_result: string | null
+}
+
 function mapKartingRecord(row: KartingRecordRow): KartingRecord {
   return {
     id: row.id,
@@ -72,37 +86,52 @@ export class KartingRecordDAO {
     driver1Id: number,
     driver2Id: number,
   ): Promise<SharedChampionship[]> {
-    const [driver1Records, driver2Records] = await Promise.all([
-      this.findByDriverId(driver1Id),
-      this.findByDriverId(driver2Id),
-    ])
+    const db = await database
+    const rows = await db.all<SharedChampionshipRow[]>(
+      `
+        SELECT
+          driver1.year,
+          driver1.championship,
+          driver1.category,
+          driver1.driver_id AS driver1_id,
+          driver1.chassis AS driver1_chassis,
+          driver1.engine AS driver1_engine,
+          driver1.result AS driver1_result,
+          driver2.driver_id AS driver2_id,
+          driver2.chassis AS driver2_chassis,
+          driver2.engine AS driver2_engine,
+          driver2.result AS driver2_result
+        FROM karting_records AS driver1
+        INNER JOIN karting_records AS driver2
+          ON driver1.year = driver2.year
+          AND driver1.championship = driver2.championship
+          AND driver1.category IS driver2.category
+        WHERE driver1.driver_id = ?
+          AND driver2.driver_id = ?
+        ORDER BY driver1.year DESC, driver1.championship
+      `,
+      driver1Id,
+      driver2Id,
+    )
 
-    return driver1Records.flatMap((driver1Record) => {
-      return driver2Records
-        .filter((driver2Record) => {
-          return (
-            driver1Record.year === driver2Record.year &&
-            driver1Record.championship === driver2Record.championship &&
-            driver1Record.category === driver2Record.category
-          )
-        })
-        .map((driver2Record) => ({
-          year: driver1Record.year,
-          championship: driver1Record.championship,
-          category: driver1Record.category,
-          driver1: {
-            driverId: driver1Id,
-            chassis: driver1Record.chassis,
-            engine: driver1Record.engine,
-            result: driver1Record.result,
-          },
-          driver2: {
-            driverId: driver2Id,
-            chassis: driver2Record.chassis,
-            engine: driver2Record.engine,
-            result: driver2Record.result,
-          },
-        }))
+    return rows.map((row) => {
+      return {
+        year: row.year,
+        championship: row.championship,
+        category: row.category,
+        driver1: {
+          driverId: row.driver1_id,
+          chassis: row.driver1_chassis,
+          engine: row.driver1_engine,
+          result: row.driver1_result,
+        },
+        driver2: {
+          driverId: row.driver2_id,
+          chassis: row.driver2_chassis,
+          engine: row.driver2_engine,
+          result: row.driver2_result,
+        },
+      }
     })
   }
 
